@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Position Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #020409;
+            color: #f0f0f0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        body.light-mode {
+            background-color: #f5f5f5;
+            color: #020409;
+        }
+        .calculator {
+            background-color: #212121;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+            transition: background-color 0.3s;
+        }
+        .light-mode .calculator {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: inherit;
+        }
+        .input-group {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        label {
+            width: 200px;
+            font-weight: bold;
+            color: inherit;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #666;
+            border-radius: 4px;
+            background-color: #555;
+            color: #f0f0f0;
+            transition: all 0.3s;
+        }
+        .light-mode input, .light-mode select {
+            background-color: white;
+            border-color: #ccc;
+            color: #020409;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+            margin: 0 5px;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        #chargesBreakdown {
+            display: none;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #333;
+            border-radius: 4px;
+        }
+        .light-mode #chargesBreakdown {
+            background-color: #f0f0f0;
+        }
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            position: relative;
+        }
+        .mode-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        #sizeFormat {
+            padding: 3px;
+            margin-left: 10px;
+            background-color: #555;
+            color: #f0f0f0;
+            border: 1px solid #666;
+            border-radius: 4px;
+        }
+        .light-mode #sizeFormat {
+            background-color: white;
+            color: #020409;
+            border-color: #ccc;
+        }
+        .divider {
+            position: relative;
+        }
+        .copy-icon {
+            position: absolute;
+            right: 0;
+            top: -10px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #2196F3;
+        }
+        .clickable {
+            cursor: pointer;
+            position: relative;
+        }
+        .clickable:hover {
+            text-decoration: underline;
+        }
+        .toast {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <div class="calculator">
+        <button class="mode-toggle" onclick="toggleDarkMode()">🌙</button>
+        <h2>Crypto Position Calculator</h2>
+
+        <div class="input-group">
+            <label>Capital ($):</label>
+            <input type="number" id="capital" value="1123.6" step="1">
+        </div>
+
+        <div class="input-group">
+            <label>Risk (%):</label>
+            <input type="number" id="risk" value="2" step="0.1">
+        </div>
+
+        <div class="input-group">
+            <label>Slippage:</label>
+            <input type="number" id="slippagePercent" placeholder="%" step="0.01" style="width: 80px;">
+            <input type="number" id="slippagePoints" placeholder="Points" step="0.1" style="width: 100px;">
+        </div>
+
+        <div class="input-group">
+            <label>Fees:</label>
+            <select id="fees">
+                <option value="0.0236,0.059">M:0.0236% | T:0.059%</option>
+                <option value="0.02,0.05">M:0.02% | T:0.05%</option>
+                <option value="0.024,0.065">M:0.024% | T:0.065%</option>
+                <option value="0,0.1">M:0% | T:0.1%</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Lot Size:</label>
+            <input type="number" id="lotSize" value="0.001" step="0.001">
+        </div>
+
+        <div class="input-group">
+            <label>Trade Type:</label>
+            <select id="tradeType" style="background-color: #06a173; color: white">
+                <option value="buy">Buy</option>
+                <option value="sell">Sell</option>
+            </select>
+            <label style="margin-left: 80px;">HQ:</label>
+            <input type="number" id="hqInput" min="0" step="1" style="width: 60px; margin-left: -151px;">
+        </div>
+
+        <div class="input-group">
+            <label>Entry Price ($):</label>
+            <input type="number" id="entryPrice" step="0.0001">
+            <input type="number" class="pts-input" placeholder="Pts" id="buyPts" step="0.1" style="width: 40px; height: 15px;">
+            <div class="fee-toggle">
+                <span>M</span>
+                <label class="switch">
+                    <input type="checkbox" id="entryFeeToggle" checked>
+                    <span class="slider"></span>
+                </label>
+                <span>T</span>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Exit Price ($):</label>
+            <input type="number" id="exitPrice" step="0.0001">
+            <input type="number" class="pts-input" placeholder="Pts" id="sellPts" step="0.1" style="width: 40px; height: 15px;">
+            <div class="fee-toggle">
+                <span>M</span>
+                <label class="switch">
+                    <input type="checkbox" id="exitFeeToggle" checked>
+                    <span class="slider"></span>
+                </label>
+                <span>T</span>
+            </div>
+        </div>
+        
+        <div style="position: relative; margin-bottom: 30px;">
+        <div class="copy-icon" onclick="copyAllOutputs(this)">📋</div>
+        <hr class="divider">
+        <div class="results">
+            <div class="result-row">
+                <span>Position Size:
+                    <select id="sizeFormat">
+                        <option value="crypto">in crypto</option>
+                        <option value="lots">in lots</option>
+                    </select>
+                </span>
+                <span id="positionSize">
+                    <span class="clickable" onclick="copyToClipboard(this.textContent, this)"><strong>0</strong></span> | 
+                    <span class="clickable" onclick="copyToClipboard(this.textContent, this)"><strong>0</strong></span>
+                </span>
+            </div>
+            <div class="result-row">
+                <span>Breakeven Price:</span>
+                <span id="breakeven">
+                    <span class="clickable" onclick="copyToClipboard(this.textContent, this)"><strong>0.0000</strong></span> | 
+                    <span class="clickable" onclick="copyToClipboard(this.textContent, this)"><strong>0.0000</strong></span>
+                </span>
+            </div>
+            <hr class="divider">
+            <div class="result-row">
+                <span>Gross P/L:</span>
+                <span id="gross">$0.00</span>
+            </div>
+            <div class="result-row">
+                <span>Charges: <a href="#" onclick="toggleBreakdown()">[+]</a></span>
+                <span id="totalCharges">$0.00</span>
+            </div>
+            <div id="chargesBreakdown">
+                <div class="result-row">
+                    <span>Slippage:</span>
+                    <span id="slippageCharge">$0.00</span>
+                </div>
+                <div class="result-row">
+                    <span>Fees:</span>
+                    <span id="feeCharge">$0.00</span>
+                </div>
+            </div>
+            <div class="result-row">
+                <span>Net P/L:</span>
+                <span id="net">$0.00</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const elements = {
+            capital: document.getElementById('capital'),
+            risk: document.getElementById('risk'),
+            slippagePercent: document.getElementById('slippagePercent'),
+            slippagePoints: document.getElementById('slippagePoints'),
+            fees: document.getElementById('fees'),
+            lotSize: document.getElementById('lotSize'),
+            tradeType: document.getElementById('tradeType'),
+            entryPrice: document.getElementById('entryPrice'),
+            exitPrice: document.getElementById('exitPrice'),
+            entryFeeToggle: document.getElementById('entryFeeToggle'),
+            exitFeeToggle: document.getElementById('exitFeeToggle'),
+            positionSize: document.getElementById('positionSize'),
+            breakeven: document.getElementById('breakeven'),
+            gross: document.getElementById('gross'),
+            totalCharges: document.getElementById('totalCharges'),
+            slippageCharge: document.getElementById('slippageCharge'),
+            feeCharge: document.getElementById('feeCharge'),
+            net: document.getElementById('net'),
+            sizeFormat: document.getElementById('sizeFormat'),
+            hqInput: document.getElementById('hqInput')
+        };
+
+        function copyToClipboard(text, element) {
+            // Remove any HTML tags from the text
+            const plainText = text.replace(/<[^>]*>/g, '');
+            
+            // Create a toast element
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            navigator.clipboard.writeText(plainText)
+                .then(() => {
+                    toast.textContent = 'Copied!';
+                    showToast(toast, element);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                    toast.textContent = 'Failed to copy';
+                    showToast(toast, element);
+                });
+        }
+
+        function copyAllOutputs(element) {
+            const positionSizeLabel = "Position Size: ";
+            const positionSizeValue = elements.positionSize.textContent.trim();
+            const breakevenLabel = "Breakeven Price: ";
+            const breakevenValue = elements.breakeven.textContent.trim();
+            
+            const textToCopy = positionSizeLabel + positionSizeValue + "\n" + breakevenLabel + breakevenValue;
+            
+            // Create a toast element
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => {
+                    toast.textContent = 'All outputs copied';
+                    showToast(toast, element);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                    toast.textContent = 'Failed to copy';
+                    showToast(toast, element);
+                });
+        }
+
+        function showToast(toast, element) {
+            // Add the toast to the page
+            element.appendChild(toast);
+            
+            // Show the toast
+            setTimeout(() => {
+                toast.style.opacity = 1;
+            }, 10);
+            
+            // Hide and remove the toast after 2 seconds
+            setTimeout(() => {
+                toast.style.opacity = 0;
+                // Remove the element after fade out
+                setTimeout(() => {
+                    element.removeChild(toast);
+                }, 300);
+            }, 2000);
+        }
+
+        function calculate() {
+            const capital = parseFloat(elements.capital.value) || 0;
+            const riskPercent = parseFloat(elements.risk.value) || 0;
+            const slippagePercent = parseFloat(elements.slippagePercent.value) || 0;
+            const slippagePoints = parseFloat(elements.slippagePoints.value) || 0;
+            const lotSize = parseFloat(elements.lotSize.value) || 0.001;
+            const [makerFee, takerFee] = elements.fees.value.split(',').map(parseFloat);
+            
+            let entry = parseFloat(elements.entryPrice.value) || 0;
+            let exit = parseFloat(elements.exitPrice.value) || 0;
+            entry += elements.tradeType.value === 'buy' ? slippagePoints : -slippagePoints;
+            exit += elements.tradeType.value === 'sell' ? slippagePoints : -slippagePoints;
+
+            const riskAmount = capital * (riskPercent / 100);
+            let positionSize = 0;
+            let closestDiff = Infinity;
+
+            for(let size = 1; size <= 1000000; size++) {
+                const isBuyTrade = elements.tradeType.value === 'buy';
+                const gross = (isBuyTrade ? (exit - entry) : (entry - exit)) * lotSize * size;
+                const entryFee = entry * lotSize * size * 
+                    (elements.entryFeeToggle.checked ? takerFee : makerFee) / 100;
+                const exitFee = exit * lotSize * size * 
+                    (elements.exitFeeToggle.checked ? takerFee : makerFee) / 100;
+                const slippage = (entry + exit) * lotSize * size * (slippagePercent / 100);
+                const net = gross - (entryFee + exitFee + slippage);
+
+                const diff = Math.abs(net + riskAmount);
+                
+                if(diff < closestDiff) {
+                    closestDiff = diff;
+                    positionSize = size;
+                }
+                
+                if(net <= -riskAmount) break;
+            }
+
+            // Position size display logic
+            const hqValue = parseFloat(elements.hqInput.value);
+            const cryptoSize = positionSize * lotSize;
+            
+            if(elements.sizeFormat.value === 'crypto') {
+                let secondaryValue = hqValue ? hqValue/2 : cryptoSize/2;
+                elements.positionSize.innerHTML = 
+                    `<span class="clickable" onclick="copyToClipboard(this.textContent, this)"><strong>${cryptoSize.toFixed(4)}</strong></span> | <span class="clickable" onclick="copyToClipboard(this.textContent, this)"><strong>${secondaryValue.toFixed(4)}</strong></span>`;
+            } else {
+                let secondaryValue = hqValue ? hqValue/2 : Math.ceil(positionSize/2);
+                elements.positionSize.innerHTML = 
+                    `<span class="clickable" onclick="copyToClipboard(this.textContent, this)"><strong>${positionSize}</strong></span> | <span class="clickable" onclick="copyToClipboard(this.textContent, this)"><strong>${secondaryValue}</strong></span>`;
+            }
+
+            updateCharges(positionSize, entry, exit, lotSize, makerFee, takerFee, slippagePercent);
+            calculateBreakeven(positionSize, entry, exit, lotSize, makerFee, takerFee, slippagePercent);
+        }
+
+        function updateCharges(size, entry, exit, lotSize, makerFee, takerFee, slippagePercent) {
+            const entryFee = entry * lotSize * size * 
+                (elements.entryFeeToggle.checked ? takerFee : makerFee) / 100;
+            const exitFee = exit * lotSize * size * 
+                (elements.exitFeeToggle.checked ? takerFee : makerFee) / 100;
+            const slippage = (entry + exit) * lotSize * size * (slippagePercent / 100);
+            const isBuyTrade = elements.tradeType.value === 'buy';
+            const gross = (isBuyTrade ? (exit - entry) : (entry - exit)) * lotSize * size;
+
+            elements.gross.textContent = `$${gross.toFixed(2)}`;
+            elements.feeCharge.textContent = `$${(entryFee + exitFee).toFixed(2)}`;
+            elements.slippageCharge.textContent = `$${slippage.toFixed(2)}`;
+            elements.totalCharges.textContent = `$${(entryFee + exitFee + slippage).toFixed(2)}`;
+            elements.net.textContent = `$${(gross - (entryFee + exitFee + slippage)).toFixed(2)}`;
+        }
+
+        function calculateBreakeven(size, entry, exit, lotSize, makerFee, takerFee, slippagePercent) {
+            const isBuyTrade = elements.tradeType.value === 'buy';
+            const basePrice = isBuyTrade ? entry : exit;
+            let targetPrice = basePrice;
+            let precision = 0.0001;
+            
+            let low = isBuyTrade ? entry : exit * 0.5;
+            let high = isBuyTrade ? entry * 2 : exit;
+            
+            for(let i = 0; i < 100; i++) {
+                const mid = (low + high) / 2;
+                const gross = isBuyTrade 
+                    ? (mid - entry) * lotSize * size 
+                    : (entry - mid) * lotSize * size;
+                const entryFee = entry * lotSize * size * 
+                    (elements.entryFeeToggle.checked ? takerFee : makerFee) / 100;
+                const exitFee = mid * lotSize * size * 
+                    (elements.exitFeeToggle.checked ? takerFee : makerFee) / 100;
+                const slippage = (entry + mid) * lotSize * size * 
+                    (slippagePercent / 100);
+                const net = gross - (entryFee + exitFee + slippage);
+
+                if(Math.abs(net) < 0.001) {
+                    targetPrice = mid;
+                    break;
+                }
+
+                if((isBuyTrade && net < 0) || (!isBuyTrade && net > 0)) {
+                    low = mid;
+                } else {
+                    high = mid;
+                }
+            }
+
+            const breakevenPrice = targetPrice.toFixed(2);
+            const pfb = Math.abs(targetPrice - basePrice).toFixed(2);
+            elements.breakeven.innerHTML = 
+                `<span class="clickable" onclick="copyToClipboard(this.textContent, this)"><strong>${breakevenPrice}</strong></span> | <span class="clickable" onclick="copyToClipboard(this.textContent, this)"><strong>${pfb}</strong></span>`;
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('light-mode');
+            document.querySelector('.mode-toggle').textContent = 
+                document.body.classList.contains('light-mode') ? '🌞' : '🌙';
+        }
+
+        function toggleBreakdown() {
+            const breakdown = document.getElementById('chargesBreakdown');
+            breakdown.style.display = breakdown.style.display === 'none' ? 'block' : 'none';
+            event.preventDefault();
+        }
+
+        // Event Listeners
+        document.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('input', calculate);
+        });
+        document.getElementById('tradeType').addEventListener('change', function() {
+            this.style.backgroundColor = this.value === 'buy' ? '#06a173' : '#cd2955';
+        });
+        document.getElementById('buyPts').addEventListener('input', function() {
+            const sellPrice = parseFloat(elements.exitPrice.value);
+            if(!isNaN(sellPrice)) {
+                elements.entryPrice.value = (sellPrice + parseFloat(this.value)).toFixed(4);
+                calculate();
+            }
+        });
+        document.getElementById('sellPts').addEventListener('input', function() {
+            const buyPrice = parseFloat(elements.entryPrice.value);
+            if(!isNaN(buyPrice)) {
+                elements.exitPrice.value = (buyPrice - parseFloat(this.value)).toFixed(4);
+                calculate();
+            }
+        });
+
+        // Initial calculation
+        calculate();
+    </script>
+</body>
+</html>
